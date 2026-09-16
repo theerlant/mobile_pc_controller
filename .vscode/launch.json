@@ -1,0 +1,18 @@
+{
+    "configurations": [
+        {
+            "name": "Android Controller Flutter",
+            "type": "dart",
+            "request": "launch",
+            "cwd": "packages\\mobile_client\\lib",
+            "program": "main.dart"
+        },
+        {
+            "name": "PC Client CLI (main.dart)",
+            "type": "dart",
+            "request": "launch",
+            "cwd": "packages\\cli_client\\lib",
+            "program": "main.dart"
+        }
+    ]
+}

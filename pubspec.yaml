@@ -1,0 +1,12 @@
+name: android_steering_wheel_controller
+description: "Android Steering Wheel / Controller for PC"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.2
+
+workspace:
+  - packages/core
+  - packages/cli_client
+  - packages/mobile_client
