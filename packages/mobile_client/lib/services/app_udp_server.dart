@@ -3,11 +3,22 @@ import 'package:signals/signals_flutter.dart';
 
 UDPServer? _current;
 
-final appUdpServer = futureSignal<UDPServer>(() async {
-  return await untracked(() async {
+// Hold the server state in a standard signal, starting as Loading
+final appUdpServer = signal<AsyncState<UDPServer>>(
+  const AsyncLoading(),
+  options: SignalOptions(name: "appUDPServer instance"),
+);
+
+// Imperative initialization function
+Future<void> initUdpServer() async {
+  appUdpServer.value = const AsyncLoading();
+  try {
     await _current?.dispose();
     final server = await UDPServer.create();
     _current = server;
-    return server;
-  });
-}, options: AsyncSignalOptions(name: "appUDPServer instance"));
+
+    appUdpServer.value = AsyncData(server);
+  } catch (e, s) {
+    appUdpServer.value = AsyncError(e, s);
+  }
+}

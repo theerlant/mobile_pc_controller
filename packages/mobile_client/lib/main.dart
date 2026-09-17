@@ -5,6 +5,7 @@ import 'package:mobile_client/services/udp_server.dart';
 import 'package:signals/signals_flutter.dart';
 
 void main() {
+  initUdpServer();
   runApp(MaterialApp(home: DeviceListScreen()));
 }
 
@@ -17,29 +18,27 @@ class DeviceListScreen extends StatefulWidget {
 
 class _DeviceListScreenState extends State<DeviceListScreen> {
   UDPClient? _connectingDevice;
-  EffectCleanup? _serverReadyEffect;
+  void Function()? _serverReadySubscription;
 
   @override
   void initState() {
     super.initState();
-    // Runs once the server finishes binding, and again if it's ever
-    // recreated (e.g. after a Retry), wiring up the disconnect handler
-    // and kicking off scanning each time a server instance appears.
-    _serverReadyEffect = effect(() {
-      final server = appUdpServer.value.value;
+
+    // Subscribe to appUDPServer state.
+    _serverReadySubscription = appUdpServer.subscribe((state) {
+      final server = state.value;
       if (server != null) {
         server.onDisconnected = _handleRemoteDisconnect;
 
-        untracked(() {
-          server.startClientSearch();
-        });
+        // Start client search when UDPServer is initialized.
+        server.startClientSearch();
       }
     });
   }
 
   @override
   void dispose() {
-    _serverReadyEffect?.call();
+    _serverReadySubscription?.call();
     super.dispose();
   }
 
@@ -131,7 +130,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: appUdpServer.reload,
+                onPressed: initUdpServer,
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
               ),
