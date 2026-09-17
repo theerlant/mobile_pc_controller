@@ -1,7 +1,8 @@
 import 'dart:io';
+
 import 'package:core/udp.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mobile_client/udp_server.dart';
+import 'package:mobile_client/services/udp_server.dart';
 import 'package:mobile_client/utils/generate_session_id.dart';
 
 void main() {
@@ -30,7 +31,7 @@ void main() {
       );
       final created = await UDPServer.create(serverPort);
       expect(created, isNotNull);
-      server = created!;
+      server = created;
     });
 
     tearDown(() async {
@@ -44,10 +45,7 @@ void main() {
 
       final broadcastBytes = PacketBuilder.broadcast(pcUuid, pcName);
 
-      UDPClient? discovered;
-      server.startClientSearch((client) {
-        discovered = client;
-      });
+      server.startClientSearch();
 
       // Mock PC sends broadcast to UDPServer
       mockPcSocket.send(
@@ -58,20 +56,23 @@ void main() {
 
       await expectLater(
         Future.doWhile(() async {
-          if (discovered != null) return false;
+          if (server.discoveredClients.isNotEmpty) return false;
           await Future.delayed(const Duration(milliseconds: 20));
           return true;
         }).timeout(const Duration(seconds: 2)),
         completes,
       );
 
-      expect(discovered, isNotNull);
-      expect(discovered!.id, pcUuid);
-      expect(discovered!.deviceName, pcName);
-      expect(discovered!.address.address, InternetAddress.loopbackIPv4.address);
+      expect(server.discoveredClients.isNotEmpty, true);
+
+      final discovered = server.discoveredClients.first;
+
+      expect(discovered.id, pcUuid);
+      expect(discovered.deviceName, pcName);
+      expect(discovered.address.address, InternetAddress.loopbackIPv4.address);
 
       server.stopClientSearch();
-      expect(server.isSearching, isFalse);
+      expect(server.isSearching.value, isFalse);
     });
 
     test('connectClient succeeds when PC accepts connection', () async {
@@ -105,9 +106,9 @@ void main() {
 
       final connected = await server.connectClient(target);
       expect(connected, isTrue);
-      expect(server.isConnected, isTrue);
-      expect(server.connectedClient, isNotNull);
-      expect(server.connectedClient!.deviceName, pcName);
+      expect(server.isConnected.value, isTrue);
+      expect(server.connectedClient.value, isNotNull);
+      expect(server.connectedClient.value!.deviceName, pcName);
 
       // Test sending controller data
       final dataSent = server.sendData({
@@ -118,7 +119,7 @@ void main() {
       expect(dataSent, isTrue);
 
       await server.disconnectClient();
-      expect(server.isConnected, isFalse);
+      expect(server.isConnected.value, isFalse);
     });
 
     test('connectClient fails when PC rejects connection', () async {
@@ -150,7 +151,7 @@ void main() {
 
       final connected = await server.connectClient(target);
       expect(connected, isFalse);
-      expect(server.isConnected, isFalse);
+      expect(server.isConnected.value, isFalse);
     });
   });
 }

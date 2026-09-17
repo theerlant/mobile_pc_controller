@@ -1,29 +1,11 @@
 import 'package:core/udp.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile_client/udp_server.dart';
+import 'package:mobile_client/services/app_udp_server.dart';
+import 'package:mobile_client/services/udp_server.dart';
+import 'package:signals/signals_flutter.dart';
 
 void main() {
-  runApp(const SteeringWheelClientApp());
-}
-
-class SteeringWheelClientApp extends StatelessWidget {
-  const SteeringWheelClientApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Steering Wheel Controller',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      home: const DeviceListScreen(),
-    );
-  }
+  runApp(MaterialApp(home: DeviceListScreen()));
 }
 
 class DeviceListScreen extends StatefulWidget {
@@ -34,179 +16,102 @@ class DeviceListScreen extends StatefulWidget {
 }
 
 class _DeviceListScreenState extends State<DeviceListScreen> {
-  UDPServer? _udpServer;
-  bool _isInitializing = true;
-  String? _initError;
-
-  final List<UDPClient> _devices = [];
   UDPClient? _connectingDevice;
+  EffectCleanup? _serverReadyEffect;
 
   @override
   void initState() {
     super.initState();
-    _initServer();
-  }
+    // Runs once the server finishes binding, and again if it's ever
+    // recreated (e.g. after a Retry), wiring up the disconnect handler
+    // and kicking off scanning each time a server instance appears.
+    _serverReadyEffect = effect(() {
+      final server = appUdpServer.value.value;
+      if (server != null) {
+        server.onDisconnected = _handleRemoteDisconnect;
 
-  Future<void> _initServer() async {
-    setState(() {
-      _isInitializing = true;
-      _initError = null;
+        untracked(() {
+          server.startClientSearch();
+        });
+      }
     });
-
-    final server = await UDPServer.create();
-    if (!mounted) return;
-
-    if (server == null) {
-      setState(() {
-        _isInitializing = false;
-        _initError = 'Failed to bind UDP socket on port 5000.';
-      });
-      return;
-    }
-
-    _udpServer = server;
-    _udpServer!.onDisconnected = _handleRemoteDisconnect;
-
-    setState(() {
-      _isInitializing = false;
-    });
-
-    _startScanning();
-  }
-
-  void _handleRemoteDisconnect() {
-    if (!mounted) return;
-    setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Disconnected by remote host')),
-    );
-  }
-
-  void _startScanning() {
-    final server = _udpServer;
-    if (server == null) return;
-
-    setState(() {
-      _devices.clear();
-    });
-
-    server.startClientSearch((client) {
-      if (!mounted) return;
-      setState(() {
-        if (!_devices.any((d) => d.id == client.id)) {
-          _devices.add(client);
-        }
-      });
-    });
-  }
-
-  void _stopScanning() {
-    _udpServer?.stopClientSearch();
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  Future<void> _connect(UDPClient device) async {
-    final server = _udpServer;
-    if (server == null) return;
-
-    setState(() {
-      _connectingDevice = device;
-    });
-
-    final success = await server.connectClient(device);
-    if (!mounted) return;
-
-    setState(() {
-      _connectingDevice = null;
-    });
-
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Connected to ${device.deviceName}!'),
-          backgroundColor: Colors.green.shade800,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to connect to ${device.deviceName}'),
-          backgroundColor: Colors.red.shade800,
-        ),
-      );
-    }
-  }
-
-  Future<void> _disconnect() async {
-    final server = _udpServer;
-    if (server == null) return;
-
-    await server.disconnectClient();
-    if (!mounted) return;
-
-    setState(() {});
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Disconnected')));
   }
 
   @override
   void dispose() {
-    _udpServer?.dispose();
+    _serverReadyEffect?.call();
     super.dispose();
+  }
+
+  void _handleRemoteDisconnect() {
+    if (!mounted) return;
+    _notify('Disconnected by remote host');
+  }
+
+  Future<void> _connect(UDPServer server, UDPClient device) async {
+    setState(() => _connectingDevice = device);
+    final success = await server.connectClient(device);
+    if (!mounted) return;
+    setState(() => _connectingDevice = null);
+
+    _notify(
+      success
+          ? 'Connected to ${device.deviceName}!'
+          : 'Failed to connect to ${device.deviceName}',
+      backgroundColor: success ? Colors.green.shade800 : Colors.red.shade800,
+    );
+  }
+
+  Future<void> _disconnect(UDPServer server) async {
+    await server.disconnectClient();
+    if (!mounted) return;
+    _notify('Disconnected');
+  }
+
+  void _notify(String message, {Color? backgroundColor}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final server = _udpServer;
-    final isConnected = server?.isConnected ?? false;
-    final connectedClient = server?.connectedClient;
-    final isSearching = server?.isSearching ?? false;
+    return SignalBuilder(
+      builder: (context) {
+        final state = appUdpServer.value;
+        final server = state.value;
+        final isSearching = server?.isSearching.value ?? false;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Available PC Hosts'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(isSearching ? Icons.stop : Icons.refresh),
-            tooltip: isSearching ? 'Stop Scanning' : 'Scan for PCs',
-            onPressed: _isInitializing
-                ? null
-                : () {
-                    if (isSearching) {
-                      _stopScanning();
-                    } else {
-                      _startScanning();
-                    }
-                  },
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Available PC Hosts'),
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: Icon(isSearching ? Icons.stop : Icons.refresh),
+                tooltip: isSearching ? 'Stop Scanning' : 'Scan for PCs',
+                onPressed: server == null
+                    ? null
+                    : () {
+                        if (isSearching) {
+                          server.stopClientSearch();
+                        } else {
+                          server.startClientSearch();
+                        }
+                      },
+              ),
+            ],
           ),
-        ],
-      ),
-      body: _buildBody(isConnected, connectedClient, isSearching),
+          body: server != null
+              ? _buildConnectedContent(server)
+              : _buildInitOrError(state.error),
+        );
+      },
     );
   }
 
-  Widget _buildBody(
-    bool isConnected,
-    ConnectedClient? connectedClient,
-    bool isSearching,
-  ) {
-    if (_isInitializing) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Initializing UDP listener...'),
-          ],
-        ),
-      );
-    }
-
-    if (_initError != null) {
+  Widget _buildInitOrError(Object? error) {
+    if (error != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -220,13 +125,13 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                _initError!,
+                error.toString(),
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: _initServer,
+                onPressed: appUdpServer.reload,
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
               ),
@@ -236,22 +141,40 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
       );
     }
 
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Initializing UDP listener...'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnectedContent(UDPServer server) {
+    final connectedClient = server.connectedClient.value;
+    final isConnected = server.isConnected.value;
+    final isSearching = server.isSearching.value;
+    final devices = server.discoveredClients;
+
     return Column(
       children: [
         if (isConnected && connectedClient != null)
-          _buildConnectedBanner(connectedClient)
+          _buildConnectedBanner(connectedClient, server)
         else if (isSearching)
           const LinearProgressIndicator(),
         Expanded(
-          child: _devices.isEmpty
-              ? _buildEmptyState(isSearching)
-              : _buildDeviceList(connectedClient),
+          child: devices.isEmpty
+              ? _buildEmptyState(isSearching, server)
+              : _buildDeviceList(devices, connectedClient, server),
         ),
       ],
     );
   }
 
-  Widget _buildConnectedBanner(ConnectedClient client) {
+  Widget _buildConnectedBanner(ConnectedClient client, UDPServer server) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -276,7 +199,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
             ),
           ),
           OutlinedButton(
-            onPressed: _disconnect,
+            onPressed: () => _disconnect(server),
             child: const Text('Disconnect'),
           ),
         ],
@@ -284,7 +207,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
     );
   }
 
-  Widget _buildEmptyState(bool isSearching) {
+  Widget _buildEmptyState(bool isSearching, UDPServer server) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -313,7 +236,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
             const SizedBox(height: 24),
             if (!isSearching)
               FilledButton.icon(
-                onPressed: _startScanning,
+                onPressed: server.startClientSearch,
                 icon: const Icon(Icons.refresh),
                 label: const Text('Scan Now'),
               ),
@@ -323,13 +246,17 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
     );
   }
 
-  Widget _buildDeviceList(ConnectedClient? connectedClient) {
+  Widget _buildDeviceList(
+    List<UDPClient> devices,
+    ConnectedClient? connectedClient,
+    UDPServer server,
+  ) {
     return ListView.separated(
       padding: const EdgeInsets.all(12),
-      itemCount: _devices.length,
+      itemCount: devices.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
-        final device = _devices[index];
+        final device = devices[index];
         final isThisConnected = connectedClient?.id == device.id;
         final isThisConnecting = _connectingDevice?.id == device.id;
 
@@ -374,7 +301,7 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
                 : FilledButton(
                     onPressed: _connectingDevice != null
                         ? null
-                        : () => _connect(device),
+                        : () => _connect(server, device),
                     child: const Text('Connect'),
                   ),
           ),

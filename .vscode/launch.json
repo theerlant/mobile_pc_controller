@@ -4,8 +4,8 @@
             "name": "Android Controller Flutter",
             "type": "dart",
             "request": "launch",
-            "cwd": "packages\\mobile_client\\lib",
-            "program": "main.dart"
+            "cwd": "packages\\mobile_client",
+            "program": "lib/main.dart"
         },
         {
             "name": "PC Client CLI (main.dart)",
