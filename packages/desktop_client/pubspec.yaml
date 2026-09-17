@@ -4,3 +4,20 @@ description: "Windows Desktop Client-side Application"
 environment:
   sdk: ^3.13.2
 resolution: workspace
+
+dependencies: 
+  core: any
+  ffi: ^2.2.0
+  flutter:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter
+  signals: ^7.1.0
+  win32: ^6.4.0
+  win32_registry: ^3.0.3
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
