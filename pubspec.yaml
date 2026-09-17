@@ -8,5 +8,5 @@ environment:
 
 workspace:
   - packages/core
-  - packages/cli_client
+  - packages/desktop_client
   - packages/mobile_client

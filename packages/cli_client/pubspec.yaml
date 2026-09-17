@@ -1,5 +1,0 @@
-name: cli_client
-
-environment:
-  sdk: ^3.13.2
-resolution: workspace

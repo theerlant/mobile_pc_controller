@@ -1,0 +1,6 @@
+name: desktop_client
+description: "Windows Desktop Client-side Application"
+
+environment:
+  sdk: ^3.13.2
+resolution: workspace
