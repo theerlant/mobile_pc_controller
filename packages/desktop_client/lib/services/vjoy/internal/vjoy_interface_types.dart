@@ -1,26 +1,5 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 
-/// vJoyInterface.dll methods reference, adapted into dart casing convetion
-final vJoyEnabled = "vJoyEnabled";
-final getvJoyVersion = "GetvJoyVersion";
-final getvJoyProductString = "GetvJoyProductString";
-final getvJoyManufacturerString = "GetvJoyManufacturerString";
-final getvJoySerialNumberString = "GetvJoySerialNumberString";
-final driverMatch = "DriverMatch";
-final getVJDStatus = "GetVJDStatus";
-final isVJDExists = "isVJDExists";
-final acquireVJD = "AcquireVJD";
-final relinquishVJD = 'RelinquishVJD';
-final updateVJD = 'UpdateVJD';
-final getVJDAxisExist = 'GetVJDAxisExist';
-final resetVJD = 'ResetVJD';
-final resetButtons = 'ResetButtons';
-final resetPovs = 'ResetPovs';
-final setAxis = 'SetAxis';
-final setBtn = 'SetBtn';
-final setDiscPov = 'SetDiscPov';
-final setContPov = 'SetContPov';
-
 /// Vjoy device status
 enum VjdStat {
   own(0),
