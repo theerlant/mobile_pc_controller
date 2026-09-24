@@ -1,0 +1,11 @@
+// ignore_for_file: constant_identifier_names
+
+const JOYERR_BASE = 160;
+const MMSYSERR_NOERROR = 0;
+const MMSYSERR_ERROR = 1;
+const MMSYSERR_BADDEVICEID = 2;
+const MMSYSERR_NODRIVER = 6;
+const MMSYSERR_INVALIDPARAM = 11;
+const JOYERR_NOERROR = 0;
+const JOYERR_PARMS = JOYERR_BASE + 5;
+const JOYERR_UNPLUGGED = JOYERR_BASE + 7;
