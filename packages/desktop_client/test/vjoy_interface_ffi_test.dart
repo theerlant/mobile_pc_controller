@@ -195,5 +195,105 @@ void main() {
         expect(ffi.getVJDStatus(deviceId), isNot(equals(VjdStat.own)));
       }
     });
+
+    test('high-level Vjoy discovery and device management methods work correctly', () {
+      if (!isInstalled) {
+        markTestSkipped('vJoy is not installed on this machine.');
+        return;
+      }
+
+      expect(vjoy.isEnabled, isA<bool>());
+      expect(vjoy.version, isA<int>());
+      expect(vjoy.productString, anyOf(isNull, isA<String>()));
+      expect(vjoy.manufacturerString, anyOf(isNull, isA<String>()));
+      expect(vjoy.serialNumberString, anyOf(isNull, isA<String>()));
+
+      final existingIds = vjoy.getExistingDeviceIds();
+      expect(existingIds, isA<List<int>>());
+
+      final existingDevices = vjoy.getExistingDevices();
+      expect(existingDevices.length, equals(existingIds.length));
+
+      final device1 = vjoy.getDevice(1);
+      expect(device1.deviceId, equals(1));
+      expect(device1.exists, isA<bool>());
+      expect(device1.status, isA<VjdStat>());
+      expect(device1.availableAxes, isA<List<Axis>>());
+    });
+
+    test('high-level VjoyDevice control feeding and resets execute safely', () {
+      if (!isInstalled) {
+        markTestSkipped('vJoy is not installed on this machine.');
+        return;
+      }
+
+      final device1 = vjoy.getDevice(1);
+      if (device1.isFree) {
+        expect(device1.acquire(), isTrue);
+        expect(device1.isOwned, isTrue);
+
+        // Axis normalized writes
+        device1.setXNormalized(0.0); // center
+        device1.setXNormalized(-1.0); // full left
+        device1.setXNormalized(1.0); // full right
+        device1.setYNormalized(0.5);
+        device1.setZNormalized(1.0);
+        device1.setRxNormalized(0.0);
+        device1.setRyNormalized(0.0);
+        device1.setRzNormalized(0.0);
+        device1.setSlider0Normalized(0.25);
+        device1.setSlider1Normalized(0.75);
+        device1.setWheelNormalized(0.0);
+
+        // Button operations
+        device1.pressButton(1);
+        device1.releaseButton(1);
+        device1.setButton(2, true);
+
+        // POV operations
+        device1.setContinuousPovAngle(1, 90.0);
+        device1.setContinuousPovAngle(1, null); // center
+        device1.setDiscretePov(1, DiscPov.North);
+        device1.setDiscretePov(1, DiscPov.Neutral);
+
+        // Resets
+        device1.resetButtons();
+        device1.resetPovs();
+        device1.reset();
+        vjoy.resetAll();
+
+        // Relinquish
+        device1.relinquish();
+        expect(device1.isOwned, isFalse);
+      }
+    });
+
+    test('invalid device IDs throw VjoyDeviceInvalid when getting device', () {
+      if (!isInstalled) {
+        markTestSkipped('vJoy is not installed on this machine.');
+        return;
+      }
+
+      expect(() => vjoy.getDevice(0), throwsA(isA<VjoyDeviceInvalid>()));
+      expect(() => vjoy.getDevice(17), throwsA(isA<VjoyDeviceInvalid>()));
+      expect(() => vjoy.getDevice(-1), throwsA(isA<VjoyDeviceInvalid>()));
+    });
+  });
+
+  group('VjoyDevice Unit & Value Math Tests', () {
+    test('VjoyDevice bounds normalization calculations', () {
+      // Bipolar (-1.0 .. +1.0)
+      expect(VjoyDevice.normalizeBipolar(-1.0), equals(1));
+      expect(VjoyDevice.normalizeBipolar(0.0), equals(16384));
+      expect(VjoyDevice.normalizeBipolar(1.0), equals(32768));
+      expect(VjoyDevice.normalizeBipolar(-2.0), equals(1)); // clamped
+      expect(VjoyDevice.normalizeBipolar(2.0), equals(32768)); // clamped
+
+      // Unipolar (0.0 .. 1.0)
+      expect(VjoyDevice.normalizeUnipolar(0.0), equals(1));
+      expect(VjoyDevice.normalizeUnipolar(1.0), equals(32768));
+      expect(VjoyDevice.normalizeUnipolar(-0.5), equals(1)); // clamped
+      expect(VjoyDevice.normalizeUnipolar(1.5), equals(32768)); // clamped
+    });
   });
 }
