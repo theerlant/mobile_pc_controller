@@ -22,7 +22,7 @@ final class JOYCAPSW extends Struct {
   external int wPid;
   @Array(MAXPNAMELEN)
   external Array<Uint16> szPname;
-  @WORD()
+  @UINT()
   external int wXmin;
   @UINT()
   external int wXmax;

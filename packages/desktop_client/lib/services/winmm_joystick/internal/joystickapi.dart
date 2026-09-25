@@ -2,14 +2,14 @@ import 'dart:ffi';
 
 import 'package:desktop_client/services/winmm_joystick/internal/joystickapi_typedef.dart';
 
-class Joystickapi {
+class JoystickApi {
   late final DynamicLibrary _winmm;
 
   late final DartjoyGetNumDevs getNumDevs;
   late final DartjoyGetPosEx getPosEx;
   late final DartJoyGetDevCapsW getDevCapsW;
 
-  Joystickapi() {
+  JoystickApi() {
     _winmm = DynamicLibrary.open("winmm.dll");
 
     getNumDevs = _winmm.lookupFunction<CjoyGetNumDevs, DartjoyGetNumDevs>(
@@ -21,5 +21,9 @@ class Joystickapi {
     getDevCapsW = _winmm.lookupFunction<CjoyGetDevCapsW, DartJoyGetDevCapsW>(
       'joyGetDevCapsW',
     );
+  }
+
+  void dispose() {
+    _winmm.close();
   }
 }
