@@ -1,59 +1,40 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:desktop_client/services/vjoy/vjoy.dart';
-import 'package:desktop_client/utils/win32/run_as_admin.dart';
-import 'package:desktop_client/utils/win32/win_messagebox.dart';
+import 'package:desktop_client/services/vjoy/vjoy.dart' as vjoyApi;
+import 'package:flutter/widgets.dart';
 
 void main() async {
-  late final Vjoy vjoy;
+  WidgetsFlutterBinding.ensureInitialized();
+
+  late final vjoyApi.Vjoy vJoy;
   try {
-    vjoy = Vjoy.fromRegistry();
-  } on VjoyError catch (err) {
-    winMessageBox(message: err.message, uType: MB_STYLE_ERROR_OK);
-    exit(-1);
-  } catch (err) {
-    winMessageBox(
-      message: 'Failed to initialize vJoy: $err',
-      uType: MB_STYLE_ERROR_OK,
-    );
-    exit(-1);
+    vJoy = vjoyApi.Vjoy.fromRegistry();
+  } catch (e) {
+    print("Error loading vJoy from registry: $e");
   }
 
-  final interface = vjoy.ffi;
+  if (!vJoy.isEnabled) {
+    print("Enabling vJoy device driver...");
 
-  if (!interface.vJoyEnabled()) {
-    try {
-      final target = vjoy.configExePath;
+    final result = await vJoy.enableDriver();
 
-      if (!runAsAdmin(target, parameters: "enable on")) {
-        winMessageBox(
-          message: "Failed to run vJoyConfig.exe to enable vJoy device.\nTry enabling manually from 'Configure vJoy' or 'vJoyConf.exe'",
-          uType: MB_STYLE_ERROR_OK,
-        );
-        exit(-1);
-      }
-    } catch (err) {
-      print('Failed to run vJoyConfig.exe: $err');
+    if (!result) {
+      print("Failed enabling vJoy device driver!");
+      exit(-1);
     }
   }
+  assert(vJoy.isEnabled);
+  print('vJoy device driver enabled');
 
-  final vJoyInfo = (
-    interface.getvJoyManufacturerString(),
-    interface.getvJoyProductString(),
-    interface.getvJoySerialNumberString(),
+  // Configure it with 32 btn, 4 axis, cont pov hats
+  print("Configuring vJoy device on index 1...");
+  await vJoy.configureDevice(
+    1,
+    numButtons: 32,
+    numAnalogPovs: 1,
+    numDiscretePovs: 0,
   );
-  print(
-    "Found vJoy Device -> Vendor: ${vJoyInfo.$1} | Product: ${vJoyInfo.$2} | S/N: ${vJoyInfo.$3}",
-  );
 
-  final (match: isVersionMatch, :dllVer, :drvVer) = interface.driverMatch();
-  print("Driver version: $drvVer, Dll version: $dllVer");
-  if (!isVersionMatch) {
-    winMessageBox(
-      message:
-          "vJoyInterface version ($dllVer) do not match installed driver version ($drvVer).",
-    );
-  }
-
-  exit(0);
+  await Future.delayed(Duration(seconds: 3));
 }

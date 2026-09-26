@@ -3,7 +3,6 @@ import 'dart:collection';
 import 'dart:io';
 
 import 'package:core/udp.dart';
-import 'package:flutter/foundation.dart';
 import 'package:mobile_client/utils/generate_session_id.dart';
 import 'package:signals/signals_flutter.dart';
 

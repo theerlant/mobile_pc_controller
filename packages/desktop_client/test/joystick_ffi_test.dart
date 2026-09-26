@@ -1,5 +1,4 @@
 import 'dart:ffi';
-import 'dart:io';
 
 import 'package:desktop_client/services/winmm_joystick/internal/joycapsw.dart';
 import 'package:desktop_client/services/winmm_joystick/internal/joyinfoex.dart';
@@ -31,34 +30,37 @@ void main() {
       expect(numDevs, greaterThanOrEqualTo(0));
     });
 
-    test('getDevCapsW executes without crashing for valid and invalid device IDs', () {
-      final caps = calloc<JOYCAPSW>();
-      final capsSize = sizeOf<JOYCAPSW>();
+    test(
+      'getDevCapsW executes without crashing for valid and invalid device IDs',
+      () {
+        final caps = calloc<JOYCAPSW>();
+        final capsSize = sizeOf<JOYCAPSW>();
 
-      try {
-        // Query device ID 0
-        final result0 = api.getDevCapsW(0, caps, capsSize);
-        expect(result0, isA<int>());
-        expect(
-          result0,
-          isIn([
-            JOYERR_NOERROR,
-            JOYERR_UNPLUGGED,
-            JOYERR_PARMS,
-            MMSYSERR_NODRIVER,
-            MMSYSERR_BADDEVICEID,
-            MMSYSERR_INVALIDPARAM,
-          ]),
-        );
+        try {
+          // Query device ID 0
+          final result0 = api.getDevCapsW(0, caps, capsSize);
+          expect(result0, isA<int>());
+          expect(
+            result0,
+            isIn([
+              JOYERR_NOERROR,
+              JOYERR_UNPLUGGED,
+              JOYERR_PARMS,
+              MMSYSERR_NODRIVER,
+              MMSYSERR_BADDEVICEID,
+              MMSYSERR_INVALIDPARAM,
+            ]),
+          );
 
-        // Query out-of-range device ID (e.g. 9999)
-        final resultInvalid = api.getDevCapsW(9999, caps, capsSize);
-        expect(resultInvalid, isA<int>());
-        expect(resultInvalid, isNot(equals(JOYERR_NOERROR)));
-      } finally {
-        calloc.free(caps);
-      }
-    });
+          // Query out-of-range device ID (e.g. 9999)
+          final resultInvalid = api.getDevCapsW(9999, caps, capsSize);
+          expect(resultInvalid, isA<int>());
+          expect(resultInvalid, isNot(equals(JOYERR_NOERROR)));
+        } finally {
+          calloc.free(caps);
+        }
+      },
+    );
 
     test('getPosEx executes without crashing with JOYINFOEX struct', () {
       final info = calloc<JOYINFOEX>();
@@ -204,47 +206,50 @@ void main() {
       expect(isVjoyDevice(otherDev), isFalse);
     });
 
-    test('JoystickPosition helpers compute POV and button states correctly', () {
-      const centeredPos = JoystickPosition(
-        flags: JOY_RETURNALL,
-        x: 0,
-        y: 0,
-        z: 0,
-        r: 0,
-        u: 0,
-        v: 0,
-        buttons: 0x05, // buttons 1 and 3 pressed (bit 0 and bit 2)
-        buttonNumber: 2,
-        pov: 0xFFFF,
-      );
+    test(
+      'JoystickPosition helpers compute POV and button states correctly',
+      () {
+        const centeredPos = JoystickPosition(
+          flags: JOY_RETURNALL,
+          x: 0,
+          y: 0,
+          z: 0,
+          r: 0,
+          u: 0,
+          v: 0,
+          buttons: 0x05, // buttons 1 and 3 pressed (bit 0 and bit 2)
+          buttonNumber: 2,
+          pov: 0xFFFF,
+        );
 
-      expect(centeredPos.isPovCentered, isTrue);
-      expect(centeredPos.povAngleDegrees, isNull);
-      expect(centeredPos.isButtonPressed(1), isTrue);
-      expect(centeredPos.isButtonPressed(2), isFalse);
-      expect(centeredPos.isButtonPressed(3), isTrue);
-      expect(centeredPos.isButtonIndexPressed(0), isTrue);
-      expect(centeredPos.isButtonIndexPressed(1), isFalse);
-      expect(centeredPos.isButtonIndexPressed(2), isTrue);
-      expect(centeredPos.pressedButtons, equals([1, 3]));
+        expect(centeredPos.isPovCentered, isTrue);
+        expect(centeredPos.povAngleDegrees, isNull);
+        expect(centeredPos.isButtonPressed(1), isTrue);
+        expect(centeredPos.isButtonPressed(2), isFalse);
+        expect(centeredPos.isButtonPressed(3), isTrue);
+        expect(centeredPos.isButtonIndexPressed(0), isTrue);
+        expect(centeredPos.isButtonIndexPressed(1), isFalse);
+        expect(centeredPos.isButtonIndexPressed(2), isTrue);
+        expect(centeredPos.pressedButtons, equals([1, 3]));
 
-      const angledPos = JoystickPosition(
-        flags: JOY_RETURNALL,
-        x: 0,
-        y: 0,
-        z: 0,
-        r: 0,
-        u: 0,
-        v: 0,
-        buttons: 0,
-        buttonNumber: 0,
-        pov: 9000, // 90.00 degrees
-      );
+        const angledPos = JoystickPosition(
+          flags: JOY_RETURNALL,
+          x: 0,
+          y: 0,
+          z: 0,
+          r: 0,
+          u: 0,
+          v: 0,
+          buttons: 0,
+          buttonNumber: 0,
+          pov: 9000, // 90.00 degrees
+        );
 
-      expect(angledPos.isPovCentered, isFalse);
-      expect(angledPos.povAngleDegrees, equals(90.0));
-      expect(angledPos.pressedButtons, isEmpty);
-    });
+        expect(angledPos.isPovCentered, isFalse);
+        expect(angledPos.povAngleDegrees, equals(90.0));
+        expect(angledPos.pressedButtons, isEmpty);
+      },
+    );
 
     test('JoystickCaps bitflag getters evaluate capability bitmasks properly (synthetic data)', () {
       const caps = JoystickCaps(
@@ -283,11 +288,17 @@ void main() {
       expect(caps.hasPov, isTrue);
       expect(caps.isPovContinuous, isTrue);
       expect(caps.isPov4Dir, isFalse);
-      expect(caps.toDeviceResult(), equals((deviceId: 0, vendorId: 0x1234, productId: 0xBEAD)));
+      expect(
+        caps.toDeviceResult(),
+        equals((deviceId: 0, vendorId: 0x1234, productId: 0xBEAD)),
+      );
     });
 
     test('JoystickException.fromErrorCode produces expected messages', () {
-      final unplugged = JoystickException.fromErrorCode(JOYERR_UNPLUGGED, 'Device 0');
+      final unplugged = JoystickException.fromErrorCode(
+        JOYERR_UNPLUGGED,
+        'Device 0',
+      );
       expect(unplugged.errorCode, equals(JOYERR_UNPLUGGED));
       expect(unplugged.message, contains('unplugged'));
       expect(unplugged.toString(), contains('JoystickException'));
@@ -300,7 +311,9 @@ void main() {
       expect(noDriver.errorCode, equals(MMSYSERR_NODRIVER));
       expect(noDriver.message, contains('MMSYSERR_NODRIVER'));
 
-      final invalidParam = JoystickException.fromErrorCode(MMSYSERR_INVALIDPARAM);
+      final invalidParam = JoystickException.fromErrorCode(
+        MMSYSERR_INVALIDPARAM,
+      );
       expect(invalidParam.errorCode, equals(MMSYSERR_INVALIDPARAM));
       expect(invalidParam.message, contains('MMSYSERR_INVALIDPARAM'));
 

@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'internal/vjoy_interface_types.dart';
 import 'vjoy.dart';
-import 'vjoy_error.dart';
 
 /// High-level representation of an individual vJoy virtual device (ID 1-16).
 ///
@@ -69,9 +67,8 @@ class VjoyDevice {
   bool hasAxis(Axis axis) => vjoy.ffi.getVJDAxisExist(deviceId, axis);
 
   /// Returns a list of all enabled [Axis] types on this device.
-  List<Axis> get availableAxes => Axis.values
-      .where((axis) => axis != Axis.UNKN && hasAxis(axis))
-      .toList();
+  List<Axis> get availableAxes =>
+      Axis.values.where((axis) => axis != Axis.UNKN && hasAxis(axis)).toList();
 
   // ==========================================
   // Device Lifecycle & Resets
@@ -103,20 +100,25 @@ class VjoyDevice {
     final clamped = value.clamp(-1.0, 1.0);
     if (clamped == 0.0) return axisCenter;
     if (clamped < 0.0) {
-      return (axisCenter + clamped * (axisCenter - axisMin))
-          .round()
-          .clamp(axisMin, axisMax);
+      return (axisCenter + clamped * (axisCenter - axisMin)).round().clamp(
+        axisMin,
+        axisMax,
+      );
     }
-    return (axisCenter + clamped * (axisMax - axisCenter))
-        .round()
-        .clamp(axisMin, axisMax);
+    return (axisCenter + clamped * (axisMax - axisCenter)).round().clamp(
+      axisMin,
+      axisMax,
+    );
   }
 
   /// Helper to convert a unipolar normalized value (0.0 to 1.0) to raw vJoy range (1..32768).
   /// 0.0 -> 1, 1.0 -> 32768.
   static int normalizeUnipolar(double value) {
     final clamped = value.clamp(0.0, 1.0);
-    return (clamped * (axisMax - axisMin) + axisMin).round().clamp(axisMin, axisMax);
+    return (clamped * (axisMax - axisMin) + axisMin).round().clamp(
+      axisMin,
+      axisMax,
+    );
   }
 
   /// Set the raw value of [axis] on this device.
@@ -135,7 +137,9 @@ class VjoyDevice {
   /// If [bipolar] is false (suitable for throttle, brake, clutch, handbrake),
   /// [value] is expected in the range [0.0 .. 1.0].
   bool setAxisNormalized(Axis axis, double value, {bool bipolar = true}) {
-    final rawValue = bipolar ? normalizeBipolar(value) : normalizeUnipolar(value);
+    final rawValue = bipolar
+        ? normalizeBipolar(value)
+        : normalizeUnipolar(value);
     return setAxis(axis, rawValue);
   }
 

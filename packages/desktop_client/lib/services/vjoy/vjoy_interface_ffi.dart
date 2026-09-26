@@ -8,7 +8,6 @@ import 'package:win32/win32.dart';
 import 'internal/ffi_typedef.dart';
 import 'internal/vjoy_interface_ref.dart' as ref;
 import 'internal/vjoy_interface_types.dart' as types;
-import 'vjoy_error.dart';
 
 /// Low-level FFI binding for vJoyInterface.dll
 class VjoyInterfaceFFI {
