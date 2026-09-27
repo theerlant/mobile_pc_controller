@@ -5,6 +5,8 @@ environment:
 resolution: workspace
 
 dependencies:
+  flutter:
+    sdk: flutter
   udp: ^5.0.3
   uuid: ^4.6.0
 
