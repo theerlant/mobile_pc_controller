@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:desktop_client/utils/win32/run_as_admin.dart';
+import 'package:desktop_client/utils/win32/run_process.dart';
 import 'package:win32_registry/win32_registry.dart';
 
 import 'internal/vjoy_interface_types.dart';
@@ -30,11 +30,7 @@ class Vjoy {
   /// Low-level FFI interface wrapper.
   final VjoyInterfaceFFI ffi;
 
-  Vjoy._({
-    required this.dllLocation,
-    required this.dllPath,
-    required this.ffi,
-  });
+  Vjoy._({required this.dllLocation, required this.dllPath, required this.ffi});
 
   /// Path to the vJoy configuration utility executable (`vJoyConfig.exe`).
   String get configExePath => '$dllLocation\\vJoyConfig.exe';
@@ -65,11 +61,7 @@ class Vjoy {
     final dllPath = '$location\\$dllFileName';
     final ffi = VjoyInterfaceFFI.fromPath(dllPath);
 
-    return Vjoy._(
-      dllLocation: location,
-      dllPath: dllPath,
-      ffi: ffi,
-    );
+    return Vjoy._(dllLocation: location, dllPath: dllPath, ffi: ffi);
   }
 
   /// Initialize vJoy from a custom directory location or DLL path.
@@ -77,11 +69,7 @@ class Vjoy {
     final dllPath = '$directoryPath\\$dllFileName';
     final ffi = VjoyInterfaceFFI.fromPath(dllPath);
 
-    return Vjoy._(
-      dllLocation: directoryPath,
-      dllPath: dllPath,
-      ffi: ffi,
-    );
+    return Vjoy._(dllLocation: directoryPath, dllPath: dllPath, ffi: ffi);
   }
 
   // ==========================================
@@ -155,14 +143,17 @@ class Vjoy {
   ///
   /// If [asAdmin] is true (default), launches the process elevated via Windows UAC.
   /// If [asAdmin] is false, executes as a standard child process.
-  Future<bool> runConfigCommand(String parameters, {bool asAdmin = true}) async {
+  Future<bool> runConfigCommand(
+    String parameters, {
+    bool asAdmin = true,
+  }) async {
     final configExe = File(configExePath);
     if (!configExe.existsSync()) {
       throw VjoyInterfaceMissing(configExePath);
     }
 
     if (asAdmin) {
-      return runAsAdmin(configExePath, parameters: parameters);
+      return runProcess(configExePath, parameters: parameters);
     } else {
       final parts = parameters
           .split(' ')
@@ -238,7 +229,10 @@ class Vjoy {
     }
 
     if (axes != null && axes.isNotEmpty) {
-      final axisArgs = axes.map(_axisToArg).where((s) => s.isNotEmpty).join(' ');
+      final axisArgs = axes
+          .map(_axisToArg)
+          .where((s) => s.isNotEmpty)
+          .join(' ');
       if (axisArgs.isNotEmpty) {
         buffer.write(' -a $axisArgs');
       }

@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:desktop_client/services/vjoy/vjoy.dart';
-import 'package:desktop_client/utils/win32/run_as_admin.dart';
+import 'package:desktop_client/utils/win32/run_process.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -31,7 +31,7 @@ void main() {
         if (!ffi.vJoyEnabled()) {
           final configPath = vjoy.configExePath;
           if (File(configPath).existsSync()) {
-            final adminLaunched = runAsAdmin(
+            final adminLaunched = runProcess(
               configPath,
               parameters: 'enable on',
             );
@@ -196,30 +196,33 @@ void main() {
       }
     });
 
-    test('high-level Vjoy discovery and device management methods work correctly', () {
-      if (!isInstalled) {
-        markTestSkipped('vJoy is not installed on this machine.');
-        return;
-      }
+    test(
+      'high-level Vjoy discovery and device management methods work correctly',
+      () {
+        if (!isInstalled) {
+          markTestSkipped('vJoy is not installed on this machine.');
+          return;
+        }
 
-      expect(vjoy.isEnabled, isA<bool>());
-      expect(vjoy.version, isA<int>());
-      expect(vjoy.productString, anyOf(isNull, isA<String>()));
-      expect(vjoy.manufacturerString, anyOf(isNull, isA<String>()));
-      expect(vjoy.serialNumberString, anyOf(isNull, isA<String>()));
+        expect(vjoy.isEnabled, isA<bool>());
+        expect(vjoy.version, isA<int>());
+        expect(vjoy.productString, anyOf(isNull, isA<String>()));
+        expect(vjoy.manufacturerString, anyOf(isNull, isA<String>()));
+        expect(vjoy.serialNumberString, anyOf(isNull, isA<String>()));
 
-      final existingIds = vjoy.getExistingDeviceIds();
-      expect(existingIds, isA<List<int>>());
+        final existingIds = vjoy.getExistingDeviceIds();
+        expect(existingIds, isA<List<int>>());
 
-      final existingDevices = vjoy.getExistingDevices();
-      expect(existingDevices.length, equals(existingIds.length));
+        final existingDevices = vjoy.getExistingDevices();
+        expect(existingDevices.length, equals(existingIds.length));
 
-      final device1 = vjoy.getDevice(1);
-      expect(device1.deviceId, equals(1));
-      expect(device1.exists, isA<bool>());
-      expect(device1.status, isA<VjdStat>());
-      expect(device1.availableAxes, isA<List<Axis>>());
-    });
+        final device1 = vjoy.getDevice(1);
+        expect(device1.deviceId, equals(1));
+        expect(device1.exists, isA<bool>());
+        expect(device1.status, isA<VjdStat>());
+        expect(device1.availableAxes, isA<List<Axis>>());
+      },
+    );
 
     test('high-level VjoyDevice control feeding and resets execute safely', () {
       if (!isInstalled) {
