@@ -1,12 +1,11 @@
+// ignore_for_file: library_prefixes
+
 import 'dart:async';
 import 'dart:io';
 
 import 'package:desktop_client/services/vjoy/vjoy.dart' as vjoyApi;
-import 'package:flutter/widgets.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
   late final vjoyApi.Vjoy vJoy;
   try {
     vJoy = vjoyApi.Vjoy.fromRegistry();
@@ -37,4 +36,6 @@ void main() async {
   );
 
   await Future.delayed(Duration(seconds: 3));
+
+  exit(1);
 }
