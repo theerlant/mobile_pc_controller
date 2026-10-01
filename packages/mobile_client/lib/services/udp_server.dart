@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:io';
 
 import 'package:core/udp.dart';
+import 'package:flutter/material.dart';
 import 'package:mobile_client/utils/generate_session_id.dart';
 import 'package:signals/signals_flutter.dart';
 
@@ -48,10 +49,10 @@ class UDPServer {
     _socketSubscription = _socket.listen(
       _onSocketEvent,
       onError: (error) {
-        print("[UDPServer] Socket error: $error");
+        debugPrint("[UDPServer] Socket error: $error");
       },
       onDone: () {
-        print("[UDPServer] Socket closed");
+        debugPrint("[UDPServer] Socket closed");
       },
     );
   }
@@ -67,7 +68,7 @@ class UDPServer {
       socket.broadcastEnabled = true;
       return UDPServer._internal(socket, port);
     } catch (error) {
-      print("[UDPServer] unable to bind to port $port: $error");
+      debugPrint("[UDPServer] unable to bind to port $port: $error");
       throw Exception('Failed to bind UDP socket on port $port.');
     }
   }
@@ -136,7 +137,7 @@ class UDPServer {
       // If UUID matches an existing client but from a different IP and name, request UUID refresh
       if (existingClient.address.address != receivedClient.address.address &&
           existingClient.deviceName != receivedClient.deviceName) {
-        print(
+        debugPrint(
           "[UDPServer] A client UUID matches existing cache but from different address & name. Received: $receivedClient",
         );
         final uuidRefreshPayload = PacketBuilder.uuidRefresh();
@@ -165,7 +166,7 @@ class UDPServer {
   void _handleDisconnectRequest(DisconnectRequestPacket packet) {
     final client = connectedClient.value;
     if (client != null && packet.sessionId == client.sessionId) {
-      print("[UDPServer] Connected host terminated the session.");
+      debugPrint("[UDPServer] Connected host terminated the session.");
       _stopHeartbeat();
       connectedClient.value = null;
       onDisconnected?.call();
@@ -203,7 +204,7 @@ class UDPServer {
 
     try {
       for (int attempt = 1; attempt <= maxRetries; attempt++) {
-        print(
+        debugPrint(
           "[UDPServer] Trying to connect to ${target.deviceName} (Attempt $attempt/$maxRetries)",
         );
         _connectCompleter = Completer<ConnectResponsePacket>();
@@ -218,18 +219,18 @@ class UDPServer {
           if (response.connectionAccepted) {
             connectedClient.value = target.toConnectedClient(sessionId);
             _startHeartbeat();
-            print(
+            debugPrint(
               "[UDPServer] Connected successfully to ${target.deviceName} with session $sessionId",
             );
             return true;
           } else {
-            print(
+            debugPrint(
               "[UDPServer] Connection was rejected by ${target.deviceName}",
             );
             return false;
           }
         } on TimeoutException {
-          print(
+          debugPrint(
             "[UDPServer] Connection attempt $attempt timed out. Retrying...",
           );
         }
@@ -240,7 +241,7 @@ class UDPServer {
       _connectCompleter = null;
     }
 
-    print(
+    debugPrint(
       "[UDPServer] Failed to connect to ${target.deviceName} after $maxRetries attempts.",
     );
     return false;
@@ -286,7 +287,7 @@ class UDPServer {
         );
         _socket.send(disconnectBytes, client.address, client.port);
       } catch (e) {
-        print("[UDPServer] Error sending disconnect packet: $e");
+        debugPrint("[UDPServer] Error sending disconnect packet: $e");
       }
       connectedClient.value = null;
     }
