@@ -1,4 +1,3 @@
-import 'dart:ffi';
 import 'dart:io';
 
 import 'package:desktop_client/utils/win32/is_run_as_admin.dart';
