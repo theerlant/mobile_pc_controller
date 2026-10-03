@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:core/udp/udp_data.dart';
+import 'package:core/udp_legacy/udp_data.dart';
 
 import 'package:test/test.dart';
 import 'package:uuid/uuid.dart';
