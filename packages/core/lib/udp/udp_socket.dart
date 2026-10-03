@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:core/udp/packet_buffer.dart';
-import 'package:core/udp/udp_packet/internal/udp_packet.dart';
-import 'package:core/udp/udp_packet/packets.dart';
+import 'package:core/udp/udp_packet/udp_packet.dart';
+import 'package:core/udp/udp_packet/udp_packet_impl.dart';
 
 final _broadcastIPv4 = InternetAddress("255.255.255.255");
 

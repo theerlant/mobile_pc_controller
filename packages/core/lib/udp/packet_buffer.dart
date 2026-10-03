@@ -1,7 +1,7 @@
 import 'dart:collection';
 import 'dart:io';
 
-import 'package:core/udp/udp_packet/internal/udp_packet.dart';
+import 'package:core/udp/udp_packet/udp_packet.dart';
 
 typedef PacketBuffer = ({UdpPacket packet, InternetAddress address, int port});
 

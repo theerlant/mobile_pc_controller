@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:core/udp/udp_packet/internal/udp_packet.dart';
-import 'package:core/udp/udp_packet/internal/packet_types.dart';
+import 'package:core/udp/udp_packet/udp_packet.dart';
+import 'package:core/udp/udp_packet/packet_types.dart';
 
 const int byte32Bit = 4;
 
